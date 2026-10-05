@@ -137,6 +137,14 @@ HOST_TYPE_COLORS = {
     "Environment": "#8b5cf6",
 }
 
+HOST_TYPE_RGBA = {
+    "Human":       "rgba(59, 130, 246, 0.15)",
+    "Livestock":   "rgba(245, 158, 11, 0.15)",
+    "Companion":   "rgba(20, 184, 166, 0.15)",
+    "Wildlife":    "rgba(132, 204, 22, 0.15)",
+    "Environment": "rgba(139, 92, 246, 0.15)",
+}
+
 ZOONOTIC_COLORS = {"Very High":"#f43f5e","High":"#f97316","Moderate":"#f59e0b",
                    "Low":"#14b8a6","Negligible":"#64748b"}
 
@@ -462,9 +470,8 @@ elif page == "🌍 One Health":
                 r=row.tolist() + [row.tolist()[0]],
                 theta=top_abs + [top_abs[0]],
                 fill="toself", name=ht_name,
-                line=dict(color=HOST_TYPE_COLORS.get(ht_name,"#94a3b8")),
-                fillcolor=HOST_TYPE_COLORS.get(ht_name,"#94a3b8").replace(
-                    "#","rgba(").replace("f6","f6,0.12)") if "#" in HOST_TYPE_COLORS.get(ht_name,"") else "rgba(99,102,241,0.12)",
+                line=dict(color=HOST_TYPE_COLORS.get(ht_name, "#94a3b8"), width=2),
+                fillcolor=HOST_TYPE_RGBA.get(ht_name, "rgba(148, 163, 184, 0.15)"),
             ))
         fig4.update_layout(template=AMR_TEMPLATE, height=420,
                            polar=dict(
