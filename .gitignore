@@ -1,0 +1,35 @@
+# ── Python ──────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.so
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# ── Environments ─────────────────────────────────────────────────────────────
+venv/
+.venv/
+env/
+.env/
+*.env
+
+# ── Data & Models (large files) ───────────────────────────────────────────────
+# Uncomment to exclude from git (add a sample instead):
+# data/amr_synthetic_dataset.csv
+# models/*.joblib
+
+# ── macOS ────────────────────────────────────────────────────────────────────
+.DS_Store
+.AppleDouble
+
+# ── IDEs ─────────────────────────────────────────────────────────────────────
+.idea/
+.vscode/
+*.swp
+
+# ── Notebooks checkpoints ─────────────────────────────────────────────────────
+.ipynb_checkpoints/
+
+# ── Streamlit cache ───────────────────────────────────────────────────────────
+.streamlit/cache/
