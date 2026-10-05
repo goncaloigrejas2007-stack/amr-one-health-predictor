@@ -107,7 +107,7 @@ amr-predictor/
 ### 1. Clone & Setup Environment
 
 ```bash
-git clone https://github.com/your-username/amr-predictor.git
+git clone https://github.com/goncaloigrejas2007-stack/amr-one-health-predictor.git
 cd amr-predictor
 
 python -m venv venv
@@ -233,4 +233,4 @@ This application uses synthetic data calibrated against published epidemiologica
 **Gonçalo Igrejas**  
 *Data Science · Artificial Intelligence · Applied Microbiology*  
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-0077B5?style=flat&logo=linkedin)](https://linkedin.com)
-[![GitHub](https://img.shields.io/badge/GitHub-Follow-181717?style=flat&logo=github)](https://github.com)
+[![GitHub](https://img.shields.io/badge/GitHub-Follow-181717?style=flat&logo=github)](https://github.com/goncaloigrejas2007-stack)
