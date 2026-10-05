@@ -6,12 +6,13 @@
 ![Streamlit](https://img.shields.io/badge/Streamlit-1.40-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white)
 ![scikit-learn](https://img.shields.io/badge/scikit--learn-1.5-F7931E?style=for-the-badge&logo=scikit-learn&logoColor=white)
 ![Plotly](https://img.shields.io/badge/Plotly-5.24-3F4F75?style=for-the-badge&logo=plotly&logoColor=white)
+![PubMed](https://img.shields.io/badge/PubMed-NCBI%20Entrez%20API-336699?style=for-the-badge)
 ![One Health](https://img.shields.io/badge/WHO%20%2F%20WOAH-One%20Health-10B981?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-MIT-14b8a6?style=for-the-badge)
 
-**An interactive Machine Learning and Epidemiological Intelligence platform addressing Antimicrobial Resistance (AMR) across Humans, Livestock, Companion Animals, Wildlife, and Environmental Reservoirs under the WHO / WOAH / FAO / UNEP One Health Framework.**
+**An interactive Machine Learning and Epidemiological Intelligence platform addressing Antimicrobial Resistance (AMR) across Humans, Livestock, Companion Animals, Wildlife, and Environmental Reservoirs under the WHO / WOAH / FAO / UNEP One Health Framework, integrated with real-time PubMed scientific evidence.**
 
-[🚀 Quick Start](#-quick-start) · [🌍 One Health Framework](#-the-one-health-framework) · [✨ Features](#-features) · [🤖 ML Pipeline](#-machine-learning-pipeline) · [📁 Structure](#-repository-structure)
+[🚀 Quick Start](#-quick-start) · [🌍 One Health Framework](#-the-one-health-framework) · [✨ Features](#-features) · [📚 PubMed Evidence](#-pubmed-evidence--ncbi-integration) · [🤖 ML Pipeline](#-machine-learning-pipeline) · [📁 Structure](#-repository-structure)
 
 </div>
 
@@ -55,6 +56,7 @@ This platform implements the One Health paradigm to model, visualise, and predic
 | 🔬 **Exploratory Analysis** | Interactive antibiograms, host vs. setting matrices, resistance profiles across European countries, and high-risk pathogen screening. |
 | 🤖 **ML Intelligence** | Random Forest classifier trained on One Health epidemiological and microbiological features (ROC-AUC > 0.98, 5-fold CV, confusion matrix, feature importance). |
 | 🧬 **Live AMR Predictor** | Interactive inference engine: select host species (Human, Bovine, Canine, Wildlife, Water, etc.), isolate metadata, and antibiogram to predict MDR risk probability in real time. |
+| 📚 **PubMed Evidence & NCBI** | **Live NCBI Entrez E-Utilities integration**: queries peer-reviewed biomedical literature directly from PubMed for selected pathogen-antibiotic-host combos, with DOI links and molecular resistance genes atlas (*mcr-1*, *blaKPC*, *blaNDM*, *mecA*, *vanA*). |
 
 ---
 
@@ -81,7 +83,8 @@ amr-predictor/
 │
 ├── utils/
 │   ├── data_generator.py       # One Health synthetic generator (ECDC/EFSA/WHO calibrated)
-│   └── train_model.py          # Random Forest ML pipeline with multi-species features
+│   ├── train_model.py          # Random Forest ML pipeline with multi-species features
+│   └── pubmed_client.py        # Live NCBI Entrez API client for PubMed literature & genes
 │
 ├── data/
 │   └── amr_synthetic_dataset.csv   # One Health dataset (2,000+ isolates, 12 hosts)
@@ -216,9 +219,10 @@ Raw Isolate Profile
 > - 🌍 **Abordagem One Health**: Análise de 12 categorias de hospedeiros (humanos, bovinos, suínos, aves, animais de companhia, fauna selvagem e amostras ambientais).
 > - 📊 **Surveillance & Redes de Transmissão**: Diagramas de fluxo Sankey para mapear rotas zoonóticas entre reservatórios e fenótipos MDR.
 > - 🤖 **Modelo Preditivo**: Random Forest com **ROC-AUC de 0.989** para estimar probabilidade de multirresistência com base no antibiograma e perfil do hospedeiro.
+> - 📚 **Evidência Científica ao Vivo via PubMed**: Integração com a API oficial do NCBI Entrez para cruzar as previsões com artigos científicos e determinantes genéticos reais (*mcr-1*, *blaKPC*, *mecA*, etc.).
 > 
-> 🔗 Repositório e código no GitHub: [link]
-> #DataScience #MachineLearning #Microbiology #OneHealth #HealthTech #Python #Streamlit #Bioinformatics
+> 🔗 Repositório e código no GitHub: https://github.com/goncaloigrejas2007-stack/amr-one-health-predictor
+> #DataScience #MachineLearning #Microbiology #OneHealth #HealthTech #Python #Streamlit #Bioinformatics #PubMed #BioAI
 
 ---
 

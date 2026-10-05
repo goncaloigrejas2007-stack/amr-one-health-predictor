@@ -28,6 +28,10 @@ from utils.data_generator import (
     BACTERIA, HOST_CATEGORIES, HOST_NAMES, COUNTRIES,
     ZOONOTIC_RISK_SCORE,
 )
+from utils.pubmed_client import (
+    search_pubmed, get_amr_evidence, get_known_molecular_mechanisms,
+    RESISTANCE_MECHANISMS_DB,
+)
 
 # ── Page config ──────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -121,6 +125,63 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
 ::-webkit-scrollbar { width:5px; }
 ::-webkit-scrollbar-track { background:#060d1f; }
 ::-webkit-scrollbar-thumb { background:#1e3a5f; border-radius:3px; }
+
+/* ── PubMed Card ── */
+.pubmed-card {
+    background: #0d1b2e;
+    border: 1px solid rgba(59,130,246,0.22);
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+    margin-bottom: 0.85rem;
+    transition: transform 0.15s, border-color 0.15s;
+}
+.pubmed-card:hover {
+    border-color: #3b82f6;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(59,130,246,0.15);
+}
+.pubmed-title {
+    font-size: 0.96rem;
+    font-weight: 700;
+    margin-bottom: 0.35rem;
+    line-height: 1.4;
+}
+.pubmed-title a {
+    color: #60a5fa !important;
+    text-decoration: none;
+}
+.pubmed-title a:hover {
+    text-decoration: underline;
+    color: #93c5fd !important;
+}
+.pubmed-meta {
+    font-size: 0.8rem;
+    color: #94a3b8;
+    margin-bottom: 0.5rem;
+}
+.pubmed-tag {
+    display: inline-block;
+    background: rgba(59,130,246,0.12);
+    color: #93c5fd;
+    border: 1px solid rgba(59,130,246,0.25);
+    border-radius: 14px;
+    padding: 2px 10px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    margin-right: 6px;
+    margin-top: 2px;
+}
+.gene-pill {
+    display: inline-block;
+    background: rgba(139,92,246,0.14);
+    color: #c4b5fd;
+    border: 1px solid rgba(139,92,246,0.3);
+    border-radius: 6px;
+    padding: 2px 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.76rem;
+    margin: 3px;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -192,7 +253,7 @@ with st.sidebar:
 
     page = st.radio(
         "Navigation",
-        ["📊 Dashboard","🌍 One Health","🔬 Exploratory Analysis","🤖 ML Model","🧬 AMR Predictor"],
+        ["📊 Dashboard","🌍 One Health","🔬 Exploratory Analysis","🤖 ML Model","🧬 AMR Predictor","📚 PubMed Evidence"],
         label_visibility="collapsed",
     )
 
@@ -890,17 +951,42 @@ elif page == "🧬 AMR Predictor":
                               margin=dict(t=40,b=10,l=10,r=10))
             st.plotly_chart(fig, use_container_width=True)
 
-            # One Health zoonotic alert
-            if bact_info["zoonotic"] and bact_info["zoonotic_risk"] in ["High","Very High"]:
-                st.markdown(f"""
-                <div style="background:#f59e0b11;border:1px solid #f59e0b33;border-radius:10px;padding:.9rem;margin-top:.5rem">
-                    <b style="color:#f59e0b">🔗 One Health Zoonotic Alert</b><br>
-                    <span style="font-size:.78rem;color:#94a3b8">
-                    <b>{p_species}</b> is a <b>{bact_info["zoonotic_risk"]}</b> zoonotic pathogen.
-                    This isolate ({p_host}) may pose transmission risks to humans and other hosts.
-                    Implement barrier precautions and notify public health authorities if MDR confirmed.
-                    </span>
-                </div>""", unsafe_allow_html=True)
+            # Live PubMed evidence for this prediction
+            st.markdown("<br>", unsafe_allow_html=True)
+            with st.expander(f"📚 Live PubMed Evidence & Molecular Genes for {p_species}", expanded=True):
+                # Known resistance genes
+                known_mechs = get_known_molecular_mechanisms(p_species)
+                st.markdown("**🔬 Known Genetic Resistance Determinants:**")
+                mech_cols = st.columns(len(known_mechs) if known_mechs else 1)
+                for i, (cls_name, genes) in enumerate(known_mechs.items()):
+                    with mech_cols[i % len(mech_cols)]:
+                        st.markdown(f"<div style='font-size:.82rem;font-weight:700;color:#94a3b8;margin-bottom:4px'>{cls_name}</div>", unsafe_allow_html=True)
+                        for g in genes:
+                            st.markdown(f"<span class='gene-pill'>{g}</span>", unsafe_allow_html=True)
+
+                st.markdown("<hr style='border-color:#1e3a5f;margin:.8rem 0'>", unsafe_allow_html=True)
+                st.markdown(f"**📑 Recent Peer-Reviewed Literature from NCBI PubMed:**")
+                
+                # Identify first resistant antibiotic tested for targeted search
+                top_res_ab = [ab for ab, r in abx_inputs.items() if r == 1]
+                primary_ab = top_res_ab[0] if top_res_ab else "antimicrobial resistance"
+                
+                with st.spinner(f"Fetching latest peer-reviewed studies from PubMed for {p_species}..."):
+                    papers = get_amr_evidence(bacteria=p_species, antibiotic=primary_ab, host=p_host, max_results=3)
+
+                if papers:
+                    for p in papers:
+                        doi_part = f"<span class='pubmed-tag'>DOI: {p['doi']}</span>" if p.get('doi') else ""
+                        st.markdown(f"""
+                        <div class="pubmed-card">
+                            <div class="pubmed-title"><a href="{p['url']}" target="_blank">📄 {p['title']}</a></div>
+                            <div class="pubmed-meta">{p['authors']} · <em>{p['source']}</em> ({p['pubdate']})</div>
+                            <span class="pubmed-tag">PMID: {p['pmid']}</span>
+                            {doi_part}
+                        </div>
+                        """, unsafe_allow_html=True)
+                else:
+                    st.info("No direct literature match found via NCBI Entrez query.")
 
     st.markdown("""
     <div style="background:#0d1b2e;border:1px solid #f59e0b33;border-radius:10px;
@@ -911,3 +997,196 @@ elif page == "🧬 AMR Predictor":
         All treatment decisions must be guided by certified laboratory results and specialist expertise.
         </span>
     </div>""", unsafe_allow_html=True)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PAGE: PUBMED EVIDENCE
+# ═══════════════════════════════════════════════════════════════════════════════
+elif page == "📚 PubMed Evidence":
+    st.markdown("""
+    <div style="margin-bottom:1.5rem">
+        <h1 style="font-size:2rem;font-weight:800;color:#f1f5f9;margin-bottom:4px">
+            📚 PubMed Evidence & Scientific Literature
+        </h1>
+        <p style="color:#64748b;font-size:.9rem;margin:0">
+            Real-time querying of peer-reviewed biomedical literature via the official 
+            <b>National Center for Biotechnology Information (NCBI) Entrez API</b>.
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    tab_search, tab_mechanisms, tab_priority = st.tabs([
+        "🔍 Live PubMed Search", "🧬 Molecular Resistance Atlas", "⚠️ WHO Priority Pathogens"
+    ])
+
+    # ── Tab 1: Live Search ───────────────────────────────────────────────────
+    with tab_search:
+        st.markdown('<div class="section-header">Query the NCBI PubMed Database</div>', unsafe_allow_html=True)
+
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            q_bacteria = st.selectbox(
+                "Select Bacterium",
+                ["All / Any"] + sorted(list(BACTERIA.keys())),
+                index=1,
+            )
+        with col2:
+            q_abx = st.selectbox(
+                "Select Antibiotic Agent",
+                ["All / Any"] + ALL_ANTIBIOTICS,
+                index=ALL_ANTIBIOTICS.index("Colistin") + 1,
+            )
+        with col3:
+            q_host = st.selectbox(
+                "Host / Reservoir Context",
+                ["All / Any"] + list(HOST_CATEGORIES.keys()),
+                index=0,
+            )
+
+        col_q1, col_q2 = st.columns([3, 1])
+        with col_q1:
+            custom_q = st.text_input(
+                "Optional Custom Keywords (e.g. plasmid-mediated, mcr-1, ST131, wastewater, zoonotic)",
+                value="",
+            )
+        with col_q2:
+            max_p = st.selectbox("Max Articles", [3, 5, 10, 15], index=1)
+
+        search_btn = st.button("🚀 Search NCBI PubMed", type="primary")
+
+        # Build query
+        bact_term = None if q_bacteria == "All / Any" else q_bacteria
+        abx_term = None if q_abx == "All / Any" else q_abx
+        host_term = None if q_host == "All / Any" else q_host
+
+        if custom_q.strip():
+            raw_query = custom_q.strip()
+            if bact_term:
+                raw_query = f'"{bact_term}" AND ({raw_query})'
+            if abx_term:
+                raw_query = f'"{abx_term}" AND ({raw_query})'
+        else:
+            query_parts = []
+            if bact_term:
+                query_parts.append(f'"{bact_term}"[Title/Abstract]')
+            if abx_term:
+                query_parts.append(f'("{abx_term}"[Title/Abstract] AND resistance[Title/Abstract])')
+            else:
+                query_parts.append('("antimicrobial resistance"[Title/Abstract] OR "multidrug-resistant"[Title/Abstract])')
+            if host_term:
+                query_parts.append(f'("{host_term}" OR "One Health" OR zoonotic)')
+            raw_query = " AND ".join(query_parts)
+
+        st.markdown(f"""
+        <div style="background:#071426;border:1px solid #1e3a5f;border-radius:8px;padding:.6rem 1rem;margin:1rem 0">
+            <span style="font-size:.75rem;color:#64748b">NCBI ENTREZ QUERY:</span>
+            <code style="font-size:.8rem;color:#38bdf8;background:transparent;margin-left:8px">{raw_query}</code>
+        </div>
+        """, unsafe_allow_html=True)
+
+        with st.spinner("Connecting to NCBI Entrez E-Utilities..."):
+            papers = search_pubmed(raw_query, max_results=max_p)
+
+        if papers:
+            st.markdown(f"**Found {len(papers)} peer-reviewed papers on PubMed:**")
+            for p in papers:
+                doi_badge = f"<span class='pubmed-tag'>DOI: {p['doi']}</span>" if p.get("doi") else ""
+                st.markdown(f"""
+                <div class="pubmed-card">
+                    <div class="pubmed-title">
+                        <a href="{p['url']}" target="_blank" rel="noopener noreferrer">📄 {p['title']}</a>
+                    </div>
+                    <div class="pubmed-meta">{p['authors']} · <em>{p['source']}</em> ({p['pubdate']})</div>
+                    <div>
+                        <span class="pubmed-tag">PMID: {p['pmid']}</span>
+                        {doi_badge}
+                        <a href="{p['url']}" target="_blank" style="font-size:.72rem;color:#38bdf8;text-decoration:none;margin-left:8px">
+                            View on PubMed ↗
+                        </a>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+        else:
+            st.warning("No articles matched this specific search query. Try broadening the search terms.")
+
+    # ── Tab 2: Molecular Mechanisms Atlas ────────────────────────────────────
+    with tab_mechanisms:
+        st.markdown('<div class="section-header">Known Molecular AMR Determinants & Genes</div>', unsafe_allow_html=True)
+        st.markdown(
+            "Curated genetic resistance mechanisms mapped across key bacterial pathogens, "
+            "with direct queries to PubMed for molecular evidence."
+        )
+
+        for b_name, classes in RESISTANCE_MECHANISMS_DB.items():
+            with st.expander(f"🧬 {b_name}", expanded=(b_name in ["Klebsiella pneumoniae", "Escherichia coli"])):
+                cols = st.columns(len(classes))
+                for idx, (drug_class, gene_list) in enumerate(classes.items()):
+                    with cols[idx]:
+                        st.markdown(f"**{drug_class}**")
+                        for g in gene_list:
+                            search_link = f"https://pubmed.ncbi.nlm.nih.gov/?term={urllib.parse.quote(f'{b_name} {g}')}"
+                            st.markdown(
+                                f"• <a href='{search_link}' target='_blank' style='color:#c4b5fd;text-decoration:none'>"
+                                f"<code>{g}</code> ↗</a>",
+                                unsafe_allow_html=True
+                            )
+
+    # ── Tab 3: WHO Priority Pathogens ────────────────────────────────────────
+    with tab_priority:
+        st.markdown('<div class="section-header">WHO Bacterial Priority Pathogens List (BPPL)</div>', unsafe_allow_html=True)
+        st.markdown(
+            "The World Health Organization (WHO) categorizes antibiotic-resistant bacteria into "
+            "Critical, High, and Medium priority to guide research, development, and One Health surveillance."
+        )
+
+        p_col1, p_col2 = st.columns(2)
+        with p_col1:
+            st.markdown("""
+            <div style="background:#f43f5e11;border:1px solid #f43f5e44;border-radius:12px;padding:1.1rem;margin-bottom:1rem">
+                <div style="font-weight:800;color:#f43f5e;font-size:1rem;margin-bottom:.4rem">🔴 CRITICAL PRIORITY</div>
+                <div style="font-size:.82rem;color:#cbd5e1;line-height:1.5">
+                    • <b>Acinetobacter baumannii</b> (carbapenem-resistant)<br>
+                    • <b>Pseudomonas aeruginosa</b> (carbapenem-resistant)<br>
+                    • <b>Enterobacteriaceae</b> (carbapenem-resistant, 3rd gen. cephalosporin-resistant / ESBL)
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        with p_col2:
+            st.markdown("""
+            <div style="background:#f59e0b11;border:1px solid #f59e0b44;border-radius:12px;padding:1.1rem;margin-bottom:1rem">
+                <div style="font-weight:800;color:#f59e0b;font-size:1rem;margin-bottom:.4rem">🟠 HIGH PRIORITY</div>
+                <div style="font-size:.82rem;color:#cbd5e1;line-height:1.5">
+                    • <b>Enterococcus faecium</b> (vancomycin-resistant, VRE)<br>
+                    • <b>Staphylococcus aureus</b> (methicillin-resistant, MRSA; vancomycin-intermediate)<br>
+                    • <b>Campylobacter jejuni</b> (fluoroquinolone-resistant)<br>
+                    • <b>Salmonella enterica</b> (fluoroquinolone-resistant)
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        st.markdown('<div class="section-header">Benchmark Publications</div>', unsafe_allow_html=True)
+        from utils.pubmed_client import FALLBACK_PAPERS
+        for bp in FALLBACK_PAPERS:
+            st.markdown(f"""
+            <div class="pubmed-card">
+                <div class="pubmed-title"><a href="{bp['url']}" target="_blank">📄 {bp['title']}</a></div>
+                <div class="pubmed-meta">{bp['authors']} · <em>{bp['source']}</em> ({bp['pubdate']})</div>
+                <span class="pubmed-tag">PMID: {bp['pmid']}</span>
+                <span class="pubmed-tag">DOI: {bp['doi']}</span>
+                <a href="{bp['url']}" target="_blank" style="font-size:.72rem;color:#38bdf8;text-decoration:none;margin-left:8px">
+                    View on PubMed ↗
+                </a>
+            </div>
+            """, unsafe_allow_html=True)
+
+    st.markdown("""
+    <div style="background:#0d1b2e;border:1px solid #3b82f633;border-radius:10px;
+                padding:1rem;margin-top:1.5rem">
+        <b style="color:#60a5fa">ℹ️ NCBI Entrez E-Utilities Integration</b><br>
+        <span style="font-size:.78rem;color:#64748b">
+        Queries are executed live against the National Library of Medicine (NLM) / National Institutes of Health (NIH) PubMed repository.
+        Data is dynamically parsed and formatted in real-time.
+        </span>
+    </div>""", unsafe_allow_html=True)
+
